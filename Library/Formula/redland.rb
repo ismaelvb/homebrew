@@ -1,16 +1,19 @@
 require 'formula'
 
 class Redland < Formula
-  url 'http://download.librdf.org/source/redland-1.0.14.tar.gz'
   homepage 'http://librdf.org/'
-  md5 '3400579d137da82c4175debf9f6d53ba'
+  url 'http://download.librdf.org/source/redland-1.0.16.tar.gz'
+  sha1 '0dc3d65bee6d580cae84ed261720b5b4e6b1f856'
 
   depends_on 'pkg-config' => :build
   depends_on 'raptor'
   depends_on 'rasqal'
   depends_on 'berkeley-db' => :optional
+  depends_on 'sqlite' => :recommended
 
-  fails_with_llvm
+  fails_with :llvm do
+    build 2334
+  end
 
   def install
     system "./configure", "--disable-debug", "--disable-dependency-tracking",

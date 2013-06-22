@@ -1,38 +1,56 @@
 require 'formula'
 
+class NoExpatFramework < Requirement
+  def expat_framework
+    '/Library/Frameworks/expat.framework'
+  end
+
+  satisfy :build_env => false do
+    not File.exist? expat_framework
+  end
+
+  def message; <<-EOS.undent
+    Detected #{expat_framework}
+
+    This will be picked up by CMake's build system and likely cause the
+    build to fail, trying to link to a 32-bit version of expat.
+
+    You may need to move this file out of the way to compile CMake.
+    EOS
+  end
+end
+
 class Cmake < Formula
-  url 'http://www.cmake.org/files/v2.8/cmake-2.8.6.tar.gz'
-  md5 '2147da452fd9212bb9b4542a9eee9d5b'
   homepage 'http://www.cmake.org/'
-  bottle 'https://downloads.sf.net/project/machomebrew/Bottles/cmake-2.8.6-bottle.tar.gz'
-  bottle_sha1 '3d8368605477bddc138872053f183ba52a6e4ec9'
+  url 'http://www.cmake.org/files/v2.8/cmake-2.8.11.1.tar.gz'
+  sha1 '0ee6702155dcef6aa3e123394378ec66ea700a14'
+
+  bottle do
+    revision 1
+    sha1 'abfa087de1aef0e4e5f5ad5232e3ddabc8e6f24c' => :mountain_lion
+    sha1 'd9492e796d09419a87d1820bfb457a83763e216a' => :lion
+    sha1 'dc4f545e66e3eb16b4ca496fe7425d739e29b40a' => :snow_leopard
+  end
+
+  depends_on NoExpatFramework
 
   def install
-    # A framework-installed expat will be detected and mess things up.
-    if File.exist? "/Library/Frameworks/expat.framework"
-      opoo "/Library/Frameworks/expat.framework detected"
-      puts <<-EOS.undent
-        This will be picked up by CMake's build system and likey cause the
-        build to fail, trying to link to a 32-bit version of expat.
-        You may need to move this file out of the way for this brew to work.
-      EOS
-    end
+    args = %W[
+      --prefix=#{prefix}
+      --system-libs
+      --no-system-libarchive
+      --datadir=/share/cmake
+      --docdir=/share/doc/cmake
+      --mandir=/share/man
+    ]
 
-    if ENV['GREP_OPTIONS'] == "--color=always"
-      opoo "GREP_OPTIONS is set to '--color=always'"
-      puts <<-EOS.undent
-        Having `GREP_OPTIONS` set this way causes CMake builds to fail.
-        You will need to `unset GREP_OPTIONS` before brewing.
-      EOS
-    end
-
-    system "./bootstrap", "--prefix=#{prefix}",
-                          "--system-libs",
-                          "--no-system-libarchive",
-                          "--datadir=/share/cmake",
-                          "--docdir=/share/doc/cmake",
-                          "--mandir=/share/man"
+    system "./bootstrap", *args
     system "make"
     system "make install"
+  end
+
+  test do
+    (testpath/'CMakeLists.txt').write('find_package(Ruby)')
+    system "#{bin}/cmake", '.'
   end
 end

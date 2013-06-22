@@ -1,22 +1,17 @@
 require 'formula'
 
 class SiscScheme < Formula
-  url 'http://sourceforge.net/projects/sisc/files/SISC-Lite-zip/1.9.8/sisc-lite-1.9.8.zip'
-  md5 'c1b75ecf26af0d733415d36dcdb1d614'
-  homepage 'http://sourceforge.net/projects/sisc'
-
-  def script; <<-EOS.undent
-    #!/bin/sh
-    SISC_HOME=#{prefix}
-    EOS
-  end
+  homepage 'http://sisc-scheme.org/'
+  url 'http://sourceforge.net/projects/sisc/files/SISC%20Lite/1.16.6/sisc-lite-1.16.6.tar.gz'
+  sha1 '4572dc584f2a8e82e1a47c49ea5b9d8cf151775d'
 
   def install
-    file = File.open("sisc", "rb")
-    contents = file.read
-    run_script = script
-    run_script += contents
-    prefix.install Dir['*']
-    (bin+'sisc').write run_script
+    prefix.install_metafiles
+    libexec.install Dir['*']
+    (bin/'sisc').write <<-EOS.undent
+      #!/bin/sh
+      SISC_HOME=#{libexec}
+      exec #{libexec}/sisc "$@"
+    EOS
   end
 end
