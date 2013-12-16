@@ -2,10 +2,14 @@ require 'formula'
 
 class Wrk < Formula
   homepage 'https://github.com/wg/wrk'
-  url 'https://github.com/wg/wrk/archive/2.0.0.tar.gz'
-  sha1 'f4d3562ef41b8470e368b542686af3f42618aa67'
+  url 'https://github.com/wg/wrk/archive/3.0.3.tar.gz'
+  sha1 '097168282266414a672c77f90761d786dec323f1'
+  head 'https://github.com/wg/wrk.git'
+
+  conflicts_with 'wrk-trello', :because => 'both install `wrk` binaries'
 
   def install
+    ENV.j1
     system "make"
     bin.install "wrk"
   end

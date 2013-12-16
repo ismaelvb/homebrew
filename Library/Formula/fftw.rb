@@ -7,32 +7,30 @@ class Fftw < Formula
 
   option "with-fortran", "Enable Fortran bindings"
 
+  depends_on :fortran => :optional
+
   def install
     args = ["--enable-shared",
             "--disable-debug",
             "--prefix=#{prefix}",
             "--enable-threads",
             "--disable-dependency-tracking"]
+    simd_args = ["--enable-sse2"]
+    simd_args << "--enable-avx" if ENV.compiler == :clang and Hardware::CPU.avx? and !build.bottle?
 
-    if build.include? "with-fortran"
-      ENV.fortran
-    else
-      args << "--disable-fortran" unless which 'gfortran'
-    end
+    args << "--disable-fortran" unless build.with? "fortran"
 
     # single precision
-    # enable-sse only works with single
-    system "./configure", "--enable-single",
-                          "--enable-sse",
-                          *args
+    # enable-sse2 and enable-avx works for both single and double precision
+    system "./configure", "--enable-single", *(args + simd_args)
     system "make install"
 
     # clean up so we can compile the double precision variant
     system "make clean"
 
     # double precision
-    # enable-sse2 only works with double precision (default)
-    system "./configure", "--enable-sse2", *args
+    # enable-sse2 and enable-avx works for both single and double precision
+    system "./configure", *(args + simd_args)
     system "make install"
 
     # clean up so we can compile the long-double precision variant

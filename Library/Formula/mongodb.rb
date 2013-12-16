@@ -2,31 +2,57 @@ require 'formula'
 
 class Mongodb < Formula
   homepage 'http://www.mongodb.org/'
-  url 'http://fastdl.mongodb.org/osx/mongodb-osx-x86_64-2.4.4.tgz'
-  sha1 'd9abc5c3aa6e7c6c29bc7b4a15028091931ec7bb'
-  version '2.4.4-x86_64'
+  url 'http://downloads.mongodb.org/src/mongodb-src-r2.4.8.tar.gz'
+  sha1 '59fa237e102c9760271df9433ee7357dd0ec831f'
 
-  devel do
-    url 'http://fastdl.mongodb.org/osx/mongodb-osx-x86_64-2.5.0.tgz'
-    sha1 '158335b4b2b8d53c8c6bd4f4d81c733e492f8339'
-    version '2.5.0-x86_64'
+  bottle do
+    sha1 '959debee5883e3b3cc9730fcb09c6b5a6c827a28' => :mavericks
+    sha1 'd3ee1821c3a11b0f5e399f5ba32b724d54fc22d9' => :mountain_lion
+    sha1 '08dc5f0eb32fd70afe3b0ac6f1c260aa353f7432' => :lion
   end
 
-  depends_on :arch => :x86_64
+  devel do
+    url 'http://downloads.mongodb.org/src/mongodb-src-r2.5.4.tar.gz'
+    sha1 'ad40b93c9638178cd487c80502084ac3a9472270'
+  end
+
+  head 'https://github.com/mongodb/mongo.git'
+
+  def patches
+    if build.stable?
+      [
+        # Fix Clang v8 build failure from build warnings and -Werror
+        'https://github.com/mongodb/mongo/commit/be4bc7.patch',
+        # Fixes crash on shell exit for 2.4.x
+        'https://github.com/mongodb/mongo/commit/670c98.patch'
+      ]
+    end
+  end
+
+  depends_on 'scons' => :build
+  depends_on 'openssl' => :optional
 
   def install
-    # Copy the prebuilt binaries to prefix
-    prefix.install Dir['*']
+    # mongodb currently can't build with libc++; this should be fixed in
+    # 2.6, but can't be backported to the current stable release.
+    ENV.cxx += ' -stdlib=libstdc++' if ENV.compiler == :clang && MacOS.version >= :mavericks
 
-    # Create the data and log directories under /var
-    (var+'mongodb').mkpath
-    (var+'log/mongodb').mkpath
+    scons = Formula.factory('scons').opt_prefix/'bin/scons'
 
-    # Write the configuration files
+    args = ["--prefix=#{prefix}", "-j#{ENV.make_jobs}"]
+    args << '--64' if MacOS.prefer_64_bit?
+    args << "--cc=#{ENV.cc}"
+    args << "--cxx=#{ENV.cxx}"
+
+    if build.with? 'openssl'
+      args << '--ssl'
+      args << "--extrapathdyn=#{Formula.factory('openssl').opt_prefix}"
+    end
+
+    system scons, 'install', *args
+
     (prefix+'mongod.conf').write mongodb_conf
 
-    # Homebrew: it just works.
-    # NOTE plist updated to use prefix/mongodb!
     mv bin/'mongod', prefix
     (bin/'mongod').write <<-EOS.undent
       #!/usr/bin/env ruby
@@ -36,8 +62,10 @@ class Mongodb < Formula
       exec "#{prefix}/mongod", *ARGV
     EOS
 
-    # copy the config file to etc if this is the first install.
-    etc.install prefix+'mongod.conf' unless File.exists? etc+"mongod.conf"
+    etc.install prefix+'mongod.conf'
+
+    (var+'mongodb').mkpath
+    (var+'log/mongodb').mkpath
   end
 
   def mongodb_conf; <<-EOS.undent

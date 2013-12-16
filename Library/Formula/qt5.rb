@@ -1,50 +1,74 @@
 require 'formula'
 
+class Qt5HeadDownloadStrategy < GitDownloadStrategy
+  include FileUtils
+
+  def support_depth?
+    # We need to make a local clone so we can't use "--depth 1"
+    false
+  end
+
+  def stage
+    @clone.cd { reset }
+    safe_system 'git', 'clone', @clone, '.'
+    ln_s @clone, 'qt'
+    safe_system './init-repository', '--mirror', "#{Dir.pwd}/"
+    rm 'qt'
+  end
+end
+
 class Qt5 < Formula
   homepage 'http://qt-project.org/'
-  url 'http://releases.qt-project.org/qt5/5.0.2/single/qt-everywhere-opensource-src-5.0.2.tar.gz'
-  sha1 '7df93ca2cc5274f0cef72ea71f06feed2594b92f'
+  url 'http://download.qt-project.org/official_releases/qt/5.2/5.2.0/single/qt-everywhere-opensource-src-5.2.0.tar.gz'
+  sha1 'd0374c769a29886ee61f08a6386b9af39e861232'
+  head 'git://gitorious.org/qt/qt5.git', :branch => 'stable',
+    :using => Qt5HeadDownloadStrategy
 
-  head 'git://gitorious.org/qt/qt5.git', :branch => 'master'
+  bottle do
+    sha1 '38ae6b107af1e34635cf9e6efc69e630518cc0a6' => :mavericks
+    sha1 '7623e90ae623360a1f6ca282ca8003ae8ee04c55' => :mountain_lion
+    sha1 '1f58eab10d42880b444c6c151e2075227574fa8d' => :lion
+  end
 
   keg_only "Qt 5 conflicts Qt 4 (which is currently much more widely used)."
 
   option :universal
-  option 'with-qtdbus', 'Enable QtDBus module'
-  option 'with-demos-examples', 'Enable Qt demos and examples'
-  option 'with-debug-and-release', 'Compile Qt in debug and release mode'
-  option 'with-mysql', 'Enable MySQL plugin'
-  option 'developer', 'Compile and link Qt with developer options'
+  option 'with-docs', 'Build documentation'
+  option 'developer', 'Build and link with developer options'
 
-  depends_on :libpng
+  depends_on "d-bus" => :optional
+  depends_on "mysql" => :optional
 
-  depends_on "d-bus" if build.include? 'with-qtdbus'
-  depends_on "mysql" if build.include? 'with-mysql'
-  depends_on "jpeg"
+  odie 'qt5: --with-qtdbus has been renamed to --with-d-bus' if build.include? 'with-qtdbus'
+  odie 'qt5: --with-demos-examples is no longer supported' if build.include? 'with-demos-examples'
+  odie 'qt5: --with-debug-and-release is no longer supported' if build.include? 'with-debug-and-release'
 
   def install
+    ENV.universal_binary if build.universal?
     args = ["-prefix", prefix,
-            "-system-libpng", "-system-zlib",
-            "-confirm-license", "-opensource"]
+            "-system-zlib",
+            "-confirm-license", "-opensource",
+            "-nomake", "examples",
+            "-release"]
 
     unless MacOS::CLT.installed?
-      # Qt hard-codes paths (and uses -I flags) and linking fails on Xcode-only
-      args += ["-sdk", MacOS.sdk_path]
-      # Even with sdk given, Qt5 is too stupid to find CFNumber.h, so we give a hint:
+      # ... too stupid to find CFNumber.h, so we give a hint:
       ENV.append 'CXXFLAGS', "-I#{MacOS.sdk_path}/System/Library/Frameworks/CoreFoundation.framework/Headers"
     end
 
-    args << "-L#{MacOS::X11.prefix}/lib" << "-I#{MacOS::X11.prefix}/include" if MacOS::X11.installed?
+    # https://bugreports.qt-project.org/browse/QTBUG-34382
+    args << "-no-xcb"
 
-    args << "-plugin-sql-mysql" if build.include? 'with-mysql'
+    args << "-L#{MacOS::X11.lib}" << "-I#{MacOS::X11.include}" if MacOS::X11.installed?
 
-    if build.include? 'with-qtdbus'
-      args << "-I#{Formula.factory('d-bus').lib}/dbus-1.0/include"
-      args << "-I#{Formula.factory('d-bus').include}/dbus-1.0"
-    end
+    args << "-plugin-sql-mysql" if build.with? 'mysql'
 
-    unless build.include? 'with-demos-examples'
-      args << "-nomake" << "demos" << "-nomake" << "examples"
+    if build.with? 'd-bus'
+      dbus_opt = Formula.factory('d-bus').opt_prefix
+      args << "-I#{dbus_opt}/lib/dbus-1.0/include"
+      args << "-I#{dbus_opt}/include/dbus-1.0"
+      args << "-L#{dbus_opt}/lib"
+      args << "-ldbus-1"
     end
 
     if MacOS.prefer_64_bit? or build.universal?
@@ -55,25 +79,12 @@ class Qt5 < Formula
       args << '-arch' << 'x86'
     end
 
-    if build.include? 'with-debug-and-release'
-      args << "-debug-and-release"
-      # Debug symbols need to find the source so build in the prefix
-      mv "../qt-everywhere-opensource-src-#{version}", "#{prefix}/src"
-      cd "#{prefix}/src"
-    else
-      args << "-release"
-    end
-
     args << '-developer-build' if build.include? 'developer'
 
     system "./configure", *args
     system "make"
     ENV.j1
     system "make install"
-
-    # what are these anyway?
-    (bin+'pixeltool.app').rmtree
-    (bin+'qhelpconverter.app').rmtree
 
     # Some config scripts will only find Qt in a "Frameworks" folder
     cd prefix do
@@ -93,8 +104,8 @@ class Qt5 < Formula
     end
   end
 
-  def test
-    system "#{bin}/qmake", "--version"
+  test do
+    system "#{bin}/qmake", "-project"
   end
 
   def caveats; <<-EOS.undent

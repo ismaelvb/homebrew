@@ -2,9 +2,8 @@ require 'formula'
 
 class HtopOsx < Formula
   homepage 'https://github.com/max-horvath/htop-osx'
-  url 'https://github.com/max-horvath/htop-osx/archive/0.8.2.1-2013-03-31.tar.gz'
-  sha1 '9c4bbe8517b59ca2ead8fedd4b8b24452f2ec55e'
-  version '0.8.2.1'
+  url 'https://github.com/max-horvath/htop-osx/archive/0.8.2.2.tar.gz'
+  sha1 '17c56fe5efe81cf6b0f4c13a958fa7e4d8591b23'
 
   depends_on :autoconf
   depends_on :automake
@@ -14,7 +13,6 @@ class HtopOsx < Formula
     # Otherwise htop will segfault when resizing the terminal
     ENV.no_optimization if ENV.compiler == :clang
 
-    (buildpath/'m4').mkpath # or autogen fails
     system "./autogen.sh"
     system "./configure", "--disable-dependency-tracking", "--prefix=#{prefix}"
     system "make", "install", "DEFAULT_INCLUDES='-iquote .'"

@@ -7,7 +7,6 @@ class Pass < Formula
 
   head 'http://git.zx2c4.com/password-store', :using => :git
 
-  depends_on 'xz' => :build
   depends_on 'pwgen'
   depends_on 'tree'
   depends_on 'gnu-getopt'
@@ -15,6 +14,7 @@ class Pass < Formula
 
   def install
     system "make DESTDIR=#{prefix} PREFIX=/ install"
+    zsh_completion.install "contrib/pass.zsh-completion" => "_pass"
   end
 
   def test

@@ -2,8 +2,8 @@ require 'formula'
 
 class Rock < Formula
   homepage 'http://ooc-lang.org'
-  url 'https://github.com/nddrylliog/rock/archive/v0.9.6.tar.gz'
-  sha1 '5d1cc6f194f76a2b0a8c0ed0b48fcd0e26e75c95'
+  url 'https://github.com/nddrylliog/rock/archive/v0.9.8.tar.gz'
+  sha1 'e9c7f2352d53351b60485b27c70858a0ad5cddb3'
 
   head 'https://github.com/nddrylliog/rock.git'
 
@@ -11,6 +11,7 @@ class Rock < Formula
 
   def install
       # make rock using provided bootstrap
+      ENV['OOC_LIBS'] = prefix
       system "make rescue"
       bin.install 'bin/rock'
       man1.install "docs/rock.1"

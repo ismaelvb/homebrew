@@ -9,7 +9,7 @@ class FormulaValidationTests < Test::Unit::TestCase
 
   def test_cant_override_brew
     e = assert_raises(RuntimeError) { Class.new(Formula) { def brew; end } }
-    assert_match /You cannot override Formula#brew/, e.message
+    assert_match %r{You cannot override Formula#brew}, e.message
   end
 
   def test_validates_name
@@ -55,22 +55,19 @@ class FormulaValidationTests < Test::Unit::TestCase
   end
 
   def test_devel_only_valid
-    assert_nothing_raised do
-      formula do
-        devel do
-          url "foo"
-          version "1.0"
-        end
+    f = formula do
+      devel do
+        url "foo"
+        version "1.0"
       end
     end
+
+    assert_equal "foo", f.url
   end
 
   def test_head_only_valid
-    assert_nothing_raised do
-      formula do
-        head "foo"
-      end
-    end
+    f = formula { head "foo" }
+    assert_equal "foo", f.url
   end
 
   def test_empty_formula_invalid

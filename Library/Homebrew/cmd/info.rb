@@ -3,6 +3,7 @@ require 'tab'
 require 'keg'
 require 'caveats'
 require 'blacklist'
+require 'utils/json'
 
 module Homebrew extend self
   def info
@@ -24,7 +25,7 @@ module Homebrew extend self
           info_formula f
           puts '---'
         end
-      else
+      elsif HOMEBREW_CELLAR.exist?
         puts "#{HOMEBREW_CELLAR.children.length} kegs, #{HOMEBREW_CELLAR.abv}"
       end
     elsif valid_url ARGV[0]
@@ -46,14 +47,12 @@ module Homebrew extend self
   end
 
   def print_json
-    require 'vendor/multi_json'
-
     formulae = ARGV.include?("--all") ? Formula : ARGV.formulae
     json = formulae.map {|f| f.to_hash}
     if json.size == 1
-      puts MultiJson.encode json.pop
+      puts Utils::JSON.dump(json.pop)
     else
-      puts MultiJson.encode json
+      puts Utils::JSON.dump(json)
     end
   end
 
@@ -68,7 +67,7 @@ module Homebrew extend self
   def github_info f
     path = f.path.realpath
 
-    if path.to_s =~ %r{#{HOMEBREW_REPOSITORY}/Library/Taps/(\w+)-(\w+)/(.*)}
+    if path.to_s =~ HOMEBREW_TAP_PATH_REGEX
       user = $1
       repo = "homebrew-#$2"
       path = $3
@@ -117,13 +116,13 @@ module Homebrew extend self
     end
 
     history = github_info(f)
-    puts history if history
+    puts "From: #{history}" if history
 
     unless f.deps.empty?
       ohai "Dependencies"
       %w{build required recommended optional}.map do |type|
         deps = f.deps.send(type)
-        puts "#{type.capitalize}: #{deps*', '}" unless deps.empty?
+        puts "#{type.capitalize}: #{decorate_dependencies deps}" unless deps.empty?
       end
     end
 
@@ -135,6 +134,29 @@ module Homebrew extend self
 
     c = Caveats.new(f)
     ohai 'Caveats', c.caveats unless c.empty?
+  end
+
+  def decorate_dependencies dependencies
+    # necessary for 1.8.7 unicode handling since many installs are on 1.8.7
+    tick = ["2714".hex].pack("U*")
+    cross = ["2718".hex].pack("U*")
+
+    deps_status = dependencies.collect do |dep|
+      if dep.installed?
+        color = Tty.green
+        symbol = tick
+      else
+        color = Tty.red
+        symbol = cross
+      end
+      if ENV['HOMEBREW_NO_EMOJI']
+        colored_dep = "#{color}#{dep}"
+      else
+        colored_dep = "#{dep} #{color}#{symbol}"
+      end
+      "#{colored_dep}#{Tty.reset}"
+    end
+    deps_status * ", "
   end
 
   private

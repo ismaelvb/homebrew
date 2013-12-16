@@ -2,25 +2,27 @@ require 'formula'
 
 class Fish < Formula
   homepage 'http://fishshell.com'
-  url 'http://fishshell.com/files/2.0.0/fish-2.0.0.tar.gz'
-  sha1 '2d28553e2ff975f8e5fed6b266f7a940493b6636'
+  url 'http://fishshell.com/files/2.1.0/fish-2.1.0.tar.gz'
+  sha1 'b1764cba540055cb8e2a96a7ea4c844b04a32522'
 
-  head 'https://github.com/fish-shell/fish-shell.git'
+  head do
+    url 'https://github.com/fish-shell/fish-shell.git'
 
-  # Indeed, the head build always builds documentation
-  depends_on 'doxygen' => :build if build.head?
-  depends_on :autoconf
+    depends_on :autoconf
+    # Indeed, the head build always builds documentation
+    depends_on 'doxygen' => :build
+  end
 
   skip_clean 'share/doc'
 
   def install
-    system "autoconf"
+    system "autoconf" if build.head?
     system "./configure", "--prefix=#{prefix}"
-    system "make install"
+    system "make", "install"
   end
 
   test do
-    system "fish", "-c", "echo"
+    system "#{bin}/fish", "-c", "echo"
   end
 
   def caveats; <<-EOS.undent

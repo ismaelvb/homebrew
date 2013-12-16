@@ -1,6 +1,7 @@
 require 'dependable'
 require 'dependency'
 require 'build_environment'
+require 'extend/ENV'
 
 # A base class for non-formula requirements needed by formulae.
 # A "fatal" requirement is one that will fail the build if it is not present.
@@ -9,12 +10,13 @@ class Requirement
   include Dependable
   extend BuildEnvironmentDSL
 
-  attr_reader :tags, :name
+  attr_reader :tags, :name, :option_name
 
   def initialize(tags=[])
     @tags = tags
     @tags << :build if self.class.build
     @name ||= infer_name
+    @option_name = @name
   end
 
   # The message to show when the requirement is not met.
@@ -43,8 +45,10 @@ class Requirement
 
   # Overriding #modify_build_environment is deprecated.
   # Pass a block to the the env DSL method instead.
+  # Note: #satisfied? should be called before invoking this method
+  # as the env modifications may depend on its side effects.
   def modify_build_environment
-    satisfied? and env.modify_build_environment(self)
+    env.modify_build_environment(self)
   end
 
   def env
@@ -52,7 +56,7 @@ class Requirement
   end
 
   def eql?(other)
-    instance_of?(other.class) && hash == other.hash
+    instance_of?(other.class) && name == other.name && tags == other.tags
   end
 
   def hash
@@ -67,6 +71,7 @@ class Requirement
     f = self.class.default_formula
     raise "No default formula defined for #{inspect}" if f.nil?
     dep = Dependency.new(f, tags)
+    dep.option_name = name
     dep.env_proc = method(:modify_build_environment)
     dep
   end
@@ -84,11 +89,15 @@ class Requirement
     case o
     when Pathname
       self.class.env do
-        unless ENV["PATH"].split(":").include?(o.parent.to_s)
-          ENV.append("PATH", o.parent, ":")
+        unless ENV["PATH"].split(File::PATH_SEPARATOR).include?(o.parent.to_s)
+          ENV.append_path("PATH", o.parent)
         end
       end
     end
+  end
+
+  def which(cmd)
+    super(cmd, ORIGINAL_PATHS.join(File::PATH_SEPARATOR))
   end
 
   class << self
@@ -115,11 +124,7 @@ class Requirement
       if instance_variable_defined?(:@satisfied)
         @satisfied
       elsif @options[:build_env]
-        require 'superenv'
-        ENV.with_build_environment do
-          ENV.userpaths!
-          yield @proc
-        end
+        ENV.with_build_environment { yield @proc }
       else
         yield @proc
       end
@@ -138,9 +143,9 @@ class Requirement
       formulae = dependent.recursive_dependencies.map(&:to_formula)
       formulae.unshift(dependent)
 
-      formulae.map(&:requirements).each do |requirements|
-        requirements.each do |req|
-          if prune?(dependent, req, &block)
+      formulae.each do |f|
+        f.requirements.each do |req|
+          if prune?(f, req, &block)
             next
           else
             reqs << req
@@ -171,7 +176,7 @@ class Requirement
         if block_given?
           yield dependent, req
         elsif req.optional? || req.recommended?
-          prune unless dependent.build.with?(req.name)
+          prune unless dependent.build.with?(req)
         end
       end
     end

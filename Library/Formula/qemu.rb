@@ -2,8 +2,8 @@ require 'formula'
 
 class Qemu < Formula
   homepage 'http://www.qemu.org/'
-  url 'http://wiki.qemu-project.org/download/qemu-1.5.0.tar.bz2'
-  sha1 '52d1bd7f8627bb435b95b88ea005b71b9b1a0098'
+  url 'http://wiki.qemu-project.org/download/qemu-1.7.0.tar.bz2'
+  sha1 '4b5a21a614207e74a61659f7a6edecad6c31be95'
 
   head 'git://git.qemu-project.org/qemu.git'
 
@@ -13,7 +13,12 @@ class Qemu < Formula
   depends_on 'gnutls'
   depends_on 'glib'
   depends_on 'pixman'
+  depends_on 'vde' => :optional
   depends_on 'sdl' => :optional
+
+  def patches
+    {:p0 => ['https://trac.macports.org/export/97499%20/trunk/dports/emulators/qemu/files/patch-configure.diff']}
+  end
 
   def install
     args = %W[
@@ -25,8 +30,9 @@ class Qemu < Formula
       --disable-guest-agent
     ]
     args << (build.with?('sdl') ? '--enable-sdl' : '--disable-sdl')
+    args << (build.with?('vde') ? '--enable-vde' : '--disable-vde')
     ENV['LIBTOOL'] = 'glibtool'
     system "./configure", *args
-    system "make install"
+    system "make", "V=1", "install"
   end
 end

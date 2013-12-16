@@ -2,15 +2,8 @@ require 'formula'
 
 class Libpar2 < Formula
   homepage 'http://parchive.sourceforge.net/'
-  url 'http://sourceforge.net/projects/parchive/files/libpar2/0.2/libpar2-0.2.tar.gz'
+  url 'http://downloads.sourceforge.net/project/parchive/libpar2/0.2/libpar2-0.2.tar.gz'
   sha1 '4b3da928ea6097a8299aadafa703fc6d59bdfb4b'
-
-  fails_with :clang do
-    build 425
-    cause <<-EOS.undent
-      ./par2fileformat.h:87:25: error: flexible array member 'entries' of non-POD element type 'FILEVERIFICATIONENTRY []'
-    EOS
-  end
 
   def patches
     # Patch libpar2 - bugfixes and ability to cancel par2 repair
@@ -20,8 +13,8 @@ end
 
 class Nzbget < Formula
   homepage 'http://sourceforge.net/projects/nzbget/'
-  url 'http://downloads.sourceforge.net/project/nzbget/nzbget-stable/10.2/nzbget-10.2.tar.gz'
-  sha1 'd113525d43eaa5e0f1a4a357d30fe44267f48138'
+  url 'http://downloads.sourceforge.net/project/nzbget/nzbget-stable/11.0/nzbget-11.0.tar.gz'
+  sha1 '0c0f83de3ef25a6117c1c988d99db9d92c3739eb'
 
   head 'https://nzbget.svn.sourceforge.net/svnroot/nzbget/trunk'
 
@@ -29,10 +22,11 @@ class Nzbget < Formula
   depends_on 'libsigc++'
 
   fails_with :clang do
-    build 425
+    build 500
     cause <<-EOS.undent
       Configure errors out when testing the libpar2 headers because
       Clang does not support flexible arrays of non-POD types.
+      ./par2fileformat.h:87:25: error: flexible array member 'entries' of non-POD element type 'FILEVERIFICATIONENTRY []'
       EOS
   end
 

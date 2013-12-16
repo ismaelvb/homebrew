@@ -2,8 +2,14 @@ require 'formula'
 
 class Redis < Formula
   homepage 'http://redis.io/'
-  url 'http://redis.googlecode.com/files/redis-2.6.14.tar.gz'
-  sha1 'f56a5d4891e94ebd89f7e63c3e9151d1106dedd5'
+  url 'http://download.redis.io/releases/redis-2.8.3.tar.gz'
+  sha1 'a751371eeed5f5f02965eb34d989c1963dd8d8c7'
+
+  bottle do
+    sha1 'f6603de53354d870a84259ed6bf105cc86a3ed96' => :mavericks
+    sha1 'ec5633db0100bfdd27433cd4c83b3444de94147f' => :mountain_lion
+    sha1 'c2d7629dd955136191bf2aff7753666983113603' => :lion
+  end
 
   head 'https://github.com/antirez/redis.git', :branch => 'unstable'
 
@@ -14,13 +20,13 @@ class Redis < Formula
 
   def install
     # Architecture isn't detected correctly on 32bit Snow Leopard without help
-    ENV["OBJARCH"] = MacOS.prefer_64_bit? ? "-arch x86_64" : "-arch i386"
+    ENV["OBJARCH"] = "-arch #{MacOS.preferred_arch}"
 
     # Head and stable have different code layouts
     src = (buildpath/'src/Makefile').exist? ? buildpath/'src' : buildpath
     system "make", "-C", src, "CC=#{ENV.cc}"
 
-    %w[benchmark cli server check-dump check-aof].each { |p| bin.install src/"redis-#{p}" }
+    %w[benchmark cli server check-dump check-aof sentinel].each { |p| bin.install src/"redis-#{p}" }
     %w[run db/redis log].each { |p| (var+p).mkpath }
 
     # Fix up default conf file to match our paths
@@ -30,13 +36,8 @@ class Redis < Formula
       s.gsub! "\# bind 127.0.0.1", "bind 127.0.0.1"
     end
 
-    # Fix redis upgrade from 2.4 to 2.6.
-    if File.exists?(etc/'redis.conf') && !File.readlines(etc/'redis.conf').grep(/^vm-enabled/).empty?
-      mv etc/'redis.conf', etc/'redis.conf.old'
-      ohai "Your redis.conf will not work with 2.6; moved it to redis.conf.old"
-    end
-
-    etc.install 'redis.conf' unless (etc/'redis.conf').exist?
+    etc.install 'redis.conf'
+    etc.install 'sentinel.conf' => 'redis-sentinel.conf'
   end
 
   plist_options :manual => "redis-server #{HOMEBREW_PREFIX}/etc/redis.conf"

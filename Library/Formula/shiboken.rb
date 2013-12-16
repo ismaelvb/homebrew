@@ -2,24 +2,33 @@ require 'formula'
 
 class Shiboken < Formula
   homepage 'http://www.pyside.org/docs/shiboken'
-  url 'http://qt-project.org/uploads/pyside/shiboken-1.1.2.tar.bz2'
-  mirror 'https://distfiles.macports.org/py-shiboken/shiboken-1.1.2.tar.bz2'
-  sha1 '2ffe9d47a3f536840ed9d7eff766a53040bb2a2e'
+  url 'http://download.qt-project.org/official_releases/pyside/shiboken-1.2.1.tar.bz2'
+  mirror 'https://distfiles.macports.org/py-shiboken/shiboken-1.2.1.tar.bz2'
+  sha1 'f310ac163f3407109051ccebfd192bc9620e9124'
+
+  head 'git://gitorious.org/pyside/shiboken.git'
 
   depends_on 'cmake' => :build
   depends_on :python => :recommended
   depends_on :python3 => :optional
   depends_on 'qt'
 
+  def patches
+    # This fixes issues with libc++ and its lack of the tr1 namespace.
+    # Upstream ticket: https://bugreports.qt-project.org/browse/PYSIDE-200
+    # Patch is currently under code review at: https://codereview.qt-project.org/#change,69324
+    DATA
+  end
+
   def install
-    # Building the tests also runs them. Not building and running tests cuts
-    # install time in half. As of 1.1.1 the install fails unless you do an
-    # out of tree build and put the source dir last in the args.
+    # This block will be run for each python (2.x and 3.x if requested)!
     python do
-      # This block will be run for each python (2.x and 3.x if requested)!
+      # As of 1.1.1 the install fails unless you do an out of tree build and put
+      # the source dir last in the args.
       mkdir "macbuild#{python.if3then3}" do
         args = std_cmake_args
-        args << "-DBUILD_TESTS=OFF"
+        # Building the tests also runs them.
+        args << "-DBUILD_TESTS=ON"
         # For Xcode-only systems, the headers of system's python are inside of Xcode:
         args << "-DPYTHON#{python.if3then3}_INCLUDE_DIR='#{python.incdir}'"
         # Cmake picks up the system's python dylib, even if we have a brewed one:
@@ -46,8 +55,32 @@ class Shiboken < Formula
     end
   end
 
-  def test
-    system 'python', "-c", "import shiboken" if Tab.for_formula('Shiboken').with? 'python'
-    system 'python3', "-c", "import shiboken" if Tab.for_formula('Shiboken').with? 'python3'
+  test do
+    python do
+      system python, "-c", "import shiboken"
+    end
   end
 end
+
+__END__
+diff --git a/ext/sparsehash/google/sparsehash/sparseconfig.h b/ext/sparsehash/google/sparsehash/sparseconfig.h
+index 44a4dda..5073639 100644
+--- a/ext/sparsehash/google/sparsehash/sparseconfig.h
++++ b/ext/sparsehash/google/sparsehash/sparseconfig.h
+@@ -13,6 +13,16 @@
+     #define HASH_NAMESPACE stdext
+     /* The system-provided hash function including the namespace. */
+     #define SPARSEHASH_HASH  HASH_NAMESPACE::hash_compare
++/* libc++ does not implement the tr1 namespce, instead the
++ * equivalient functionality is placed in namespace std,
++ * so use when it targeting such systems (OS X 10.7 onwards) */
++#elif defined(_LIBCPP_VERSION)
++    /* the location of the header defining hash functions */
++    #define HASH_FUN_H <functional>
++    /* the namespace of the hash<> function */
++    #define HASH_NAMESPACE std
++    /* The system-provided hash function including the namespace. */
++    #define SPARSEHASH_HASH HASH_NAMESPACE::hash
+ #else
+     /* the location of the header defining hash functions */
+     #define HASH_FUN_H <tr1/functional>

@@ -7,6 +7,7 @@ class Flac < Formula
 
   option :universal
 
+  depends_on 'pkg-config' => :build
   depends_on 'xz' => :build
   depends_on 'lame'
   depends_on 'libogg' => :optional
@@ -18,6 +19,8 @@ class Flac < Formula
 
   def install
     ENV.universal_binary if build.universal?
+
+    ENV.append 'CFLAGS', '-std=gnu89'
 
     # sadly the asm optimisations won't compile since Leopard
     system "./configure", "--disable-dependency-tracking",
@@ -31,7 +34,7 @@ class Flac < Formula
 
     # adds universal flags to the generated libtool script
     inreplace "libtool" do |s|
-      s.gsub! ":$verstring\"", ":$verstring -arch i386 -arch x86_64\""
+      s.gsub! ":$verstring\"", ":$verstring -arch #{Hardware::CPU.arch_32_bit} -arch #{Hardware::CPU.arch_64_bit}\""
     end
 
     system "make install"

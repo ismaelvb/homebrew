@@ -2,8 +2,8 @@ require 'formula'
 
 class MysqlCluster < Formula
   homepage 'http://www.mysql.com/cluster/'
-  url 'http://mysql.llarian.net/Downloads/MySQL-Cluster-7.3/mysql-cluster-gpl-7.3.1.tar.gz'
-  sha1 '593588df751ba154fbe2d36d96dd57257c9846b3'
+  url 'http://mysql.llarian.net/Downloads/MySQL-Cluster-7.3/mysql-cluster-gpl-7.3.2.tar.gz'
+  sha1 '5b94e177ccbefd28e10b3734fbfc007da296bedd'
 
   depends_on 'cmake' => :build
   depends_on 'pidof' unless MacOS.version >= :mountain_lion
@@ -17,19 +17,14 @@ class MysqlCluster < Formula
   option 'enable-local-infile', 'Build with local infile loading support'
   option 'enable-debug', 'Build with debug support'
 
-  conflicts_with 'mysql',
-    :because => "mysql-cluster and mysql install the same binaries."
-
-  conflicts_with 'mariadb',
-    :because => "mysql-cluster and mariadb install the same binaries."
-
-  conflicts_with 'percona-server',
-    :because => "mysql-cluster and percona-server install the same binaries."
+  conflicts_with 'memcached', :because => 'both install `bin/memcached`'
+  conflicts_with 'mysql', 'mariadb', 'percona-server',
+    :because => "mysql, mariadb, and percona install the same binaries."
 
   env :std if build.universal?
 
   fails_with :clang do
-    build 421
+    build 500
     cause "http://article.gmane.org/gmane.comp.db.mysql.cluster/2085"
   end
 
@@ -74,7 +69,7 @@ class MysqlCluster < Formula
     args << "-DWITH_BLACKHOLE_STORAGE_ENGINE=1" if build.include? 'with-blackhole-storage-engine'
 
     # Make universal for binding to universal applications
-    args << "-DCMAKE_OSX_ARCHITECTURES='i386;x86_64'" if build.universal?
+    args << "-DCMAKE_OSX_ARCHITECTURES='#{Hardware::CPU.universal_archs.as_cmake_arch_flags}'" if build.universal?
 
     # Build with local infile loading support
     args << "-DENABLED_LOCAL_INFILE=1" if build.include? 'enable-local-infile'
@@ -101,7 +96,7 @@ class MysqlCluster < Formula
     plist_path('mysqld').chmod 0644
 
     # Don't create databases inside of the prefix!
-    # See: https://github.com/mxcl/homebrew/issues/4975
+    # See: https://github.com/Homebrew/homebrew/issues/4975
     rm_rf prefix+'data'
 
     # Link the setup script into bin

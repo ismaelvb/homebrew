@@ -2,9 +2,9 @@ require 'formula'
 
 class Ngircd < Formula
   homepage 'http://ngircd.barton.de'
-  url 'ftp://ftp.berlios.de/pub/ngircd/ngircd-20.1.tar.gz'
-  mirror 'http://ngircd.barton.de/pub/ngircd/ngircd-20.1.tar.gz'
-  sha1 'e5dcbd3c40880b951854c10ed52e3c1dc17c3fe0'
+  url 'ftp://ftp.berlios.de/pub/ngircd/ngircd-21.tar.gz'
+  mirror 'http://ngircd.barton.de/pub/ngircd/ngircd-21.tar.gz'
+  sha256 '0edbd41304186e43f9d907a7017b40520cc90c2ce29b1339bdcd7622fffe19a0'
 
   depends_on 'libident'
 

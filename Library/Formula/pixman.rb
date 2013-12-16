@@ -2,8 +2,8 @@ require 'formula'
 
 class Pixman < Formula
   homepage 'http://cairographics.org/'
-  url 'http://cairographics.org/releases/pixman-0.30.0.tar.gz'
-  sha256 '1d812f9f60215099355f5c13c6f06d7db1135c99f34ff03535b71b64435125fd'
+  url 'http://cairographics.org/releases/pixman-0.32.4.tar.gz'
+  sha256 '80c7ed420e8a3ae749800241e6347c3d55681296cab71384be7969cd9e657e84'
 
   depends_on 'pkg-config' => :build
 

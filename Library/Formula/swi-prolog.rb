@@ -2,15 +2,19 @@ require 'formula'
 
 class SwiProlog < Formula
   homepage 'http://www.swi-prolog.org/'
-  url 'http://www.swi-prolog.org/download/stable/src/pl-6.2.6.tar.gz'
-  sha256 '9412f0753a61c30dbcf1afac01fe7c9168002854709e00e09c21f959e1232146'
+  url 'http://www.swi-prolog.org/download/stable/src/pl-6.6.0.tar.gz'
+  sha1 '5dac33bdf5c0ed78c67c1b4e708e84895cd96dfc'
 
   devel do
-    url 'http://www.swi-prolog.org/download/devel/src/pl-6.3.17.tar.gz'
-    sha1 '93bf9a0f824a3d1ce8a189a37d0c186de6479d42'
+    url 'http://www.swi-prolog.org/download/devel/src/pl-7.1.1.tar.gz'
+    sha1 '88b3d70a557e35fea19a70f3b9753aabc63e71b6'
   end
 
-  head 'git://www.swi-prolog.org/home/pl/git/pl.git'
+  head do
+    url 'git://www.swi-prolog.org/home/pl/git/pl.git'
+
+    depends_on :autoconf
+  end
 
   option 'lite', "Disable all packages"
   option 'with-jpl', "Enable JPL (Java Prolog Bridge)"
@@ -26,7 +30,7 @@ class SwiProlog < Formula
   end
 
   # 10.5 versions of these are too old
-  if MacOS.version == :leopard
+  if MacOS.version <= :leopard
     depends_on 'fontconfig'
     depends_on 'expat'
   end
@@ -37,15 +41,15 @@ class SwiProlog < Formula
   end
 
   def install
-    args = ["--prefix=#{prefix}", "--mandir=#{man}"]
+    args = ["--prefix=#{libexec}", "--mandir=#{man}"]
     ENV.append 'DISABLE_PKGS', "jpl" unless build.include? "with-jpl"
     ENV.append 'DISABLE_PKGS', "xpce" unless build.include? 'with-xpce'
 
     # SWI-Prolog's Makefiles don't add CPPFLAGS to the compile command, but do
     # include CIFLAGS. Setting it here. Also, they clobber CFLAGS, so including
     # the Homebrew-generated CFLAGS into COFLAGS here.
-    ENV['CIFLAGS'] = ENV['CPPFLAGS']
-    ENV['COFLAGS'] = ENV['CFLAGS']
+    ENV['CIFLAGS'] = ENV.cppflags
+    ENV['COFLAGS'] = ENV.cflags
 
     # Build the packages unless --lite option specified
     args << "--with-world" unless build.include? "lite"
@@ -57,6 +61,8 @@ class SwiProlog < Formula
     system "./configure", *args
     system "make"
     system "make install"
+
+    bin.write_exec_script Dir["#{libexec}/bin/*"]
   end
 
   def test

@@ -2,8 +2,8 @@ require 'formula'
 
 class Qwt < Formula
   homepage 'http://qwt.sourceforge.net/'
-  url 'http://sourceforge.net/projects/qwt/files/qwt/6.0.1/qwt-6.0.1.tar.bz2'
-  sha1 '301cca0c49c7efc14363b42e082b09056178973e'
+  url 'http://downloads.sourceforge.net/project/qwt/qwt/6.1.0/qwt-6.1.0.tar.bz2'
+  sha1 '48a967038f7aa9a9c87c64bcb2eb07c5df375565'
 
   depends_on 'qt'
 
@@ -13,7 +13,14 @@ class Qwt < Formula
       s.gsub! /^\s*QWT_INSTALL_PREFIX\s*=(.*)$/, "QWT_INSTALL_PREFIX=#{prefix}"
     end
 
-    system "qmake -spec macx-g++ -config release"
+    args = ['-config', 'release', '-spec']
+    # On Mavericks we want to target libc++, this requires a unsupported/macx-clang-libc++ flag
+    if ENV.compiler == :clang and MacOS.version >= :mavericks
+      args << "unsupported/macx-clang-libc++"
+    else
+      args << "macx-g++"
+    end
+    system 'qmake', *args
     system "make"
     system "make install"
   end

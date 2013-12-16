@@ -8,13 +8,15 @@ class Spidermonkey < Formula
 
   head 'https://hg.mozilla.org/tracemonkey/archive/tip.tar.gz'
 
+  conflicts_with 'narwhal', :because => 'both install a js binary'
+
   depends_on 'readline'
   depends_on 'nspr'
 
   def install
     # aparently this flag causes the build to fail for ivanvc on 10.5 with a
     # penryn (core 2 duo) CPU. So lets be cautious here and remove it.
-    ENV['CFLAGS'] = ENV['CFLAGS'].gsub(/-msse[^\s]+/, '') if MacOS.version == :leopard
+    ENV['CFLAGS'] = ENV['CFLAGS'].gsub(/-msse[^\s]+/, '') if MacOS.version <= :leopard
 
     cd "js/src" do
       # Remove the broken *(for anyone but FF) install_name
@@ -27,7 +29,8 @@ class Spidermonkey < Formula
       system "../js/src/configure", "--prefix=#{prefix}",
                                     "--enable-readline",
                                     "--enable-threadsafe",
-                                    "--with-system-nspr"
+                                    "--with-system-nspr",
+                                    "--enable-macos-target=#{MacOS.version}"
 
       inreplace "js-config", /JS_CONFIG_LIBS=.*?$/, "JS_CONFIG_LIBS=''"
       # These need to be in separate steps.

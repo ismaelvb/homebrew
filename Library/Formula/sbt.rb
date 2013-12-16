@@ -2,14 +2,14 @@ require 'formula'
 
 class Sbt < Formula
   homepage 'http://www.scala-sbt.org'
-  url 'http://typesafe.artifactoryonline.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/0.12.3/sbt-launch.jar'
-  version '0.12.3'
-  sha1 '38d15379d20a8e8113e59285ff8a1e52b01b98b6'
+  url 'http://typesafe.artifactoryonline.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/0.13.1/sbt-launch.jar'
+  version '0.13.1'
+  sha1 '3a1718a467ca34380b0a356a2e1bb46813aff240'
 
   devel do
-    url 'http://typesafe.artifactoryonline.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/0.13.0-M1/sbt-launch.jar'
-    sha1 'ce2c88315f7c383a51246f5d9ce76fb6c4453ecc'
-    version '0.13.0-M1'
+    url 'http://repo.typesafe.com/typesafe/ivy-snapshots/org.scala-sbt/sbt-launch/0.13.2-20131212-062515/sbt-launch.jar'
+    version '0.13.2-20131212-062515'
+    sha1 'c820c7cb68646cacba5c97f61667ae98e9bb6f77'
   end
 
   def install
